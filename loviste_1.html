@@ -331,19 +331,28 @@
   let currentData = {};
   let selectedId = null;
 
-  // Midnight reset check
+  // Vraca timestamp danasnjeg ponoci (00:00:00)
+  function getTodayMidnight() {
+    const now = new Date();
+    return new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0).getTime();
+  }
+
+  // Reset ako je lastReset stariji od danasnjeg ponoci
   async function checkAndReset() {
     const resetRef = ref(db, "lastReset");
     const snap = await get(resetRef);
-    const today = new Date().toDateString();
-    if (!snap.exists() || snap.val() !== today) {
-      // Reset all positions
+    const todayMidnight = getTodayMidnight();
+
+    if (!snap.exists() || snap.val() < todayMidnight) {
       const updates = {};
       POSITIONS.forEach(p => { updates[`positions/${p.id}`] = { taken: false, name: "" }; });
-      updates["lastReset"] = today;
+      updates["lastReset"] = todayMidnight;
       await set(ref(db, "/"), updates);
     }
   }
+
+  // Provera svakih 5 minuta (u slucaju da je aplikacija otvorena preko ponoci)
+  setInterval(checkAndReset, 5 * 60 * 1000);
 
   window.initMap = function() {
     mapReady = true;
