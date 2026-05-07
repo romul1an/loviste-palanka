@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="sr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <title>Lovačko Udruženje – Bačka Palanka</title>
+
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Oswald:wght@400;600;700&family=Source+Sans+3:wght@300;400;600&display=swap');
+
+    :root {
+      --green: #2d6a2d;
+      --green-light: #3d8b3d;
+      --red: #c0392b;
+      --gold: #c8a84b;
+      --dark: #1a1f1a;
+      --darker: #111411;
+      --card: #222722;
+      --border: #2e372e;
+      --text: #d4dbd4;
+      --text-dim: #7a8f7a;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Source Sans 3', sans-serif;
+      background: var(--darker);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      background: var(--dark);
+      border-bottom: 2px solid var(--gold);
+      padding: 14px 20px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+    }
+
+    header .logo {
+      font-family: 'Oswald', sans-serif;
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: var(--gold);
+      letter-spacing: 1px;
+      line-height: 1.1;
+    }
+
+    header .logo span {
+      display: block;
+      font-size: 0.75rem;
+      font-weight: 400;
+      color: var(--text-dim);
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+
+    header .icon { font-size: 2rem; }
+
+    #status-bar {
+      background: var(--card);
+      border-bottom: 1px solid var(--border);
+      padding: 8px 16px;
+      display: flex;
+      gap: 20px;
+      font-size: 0.82rem;
+      color: var(--text-dim);
+      z-index: 999;
+    }
+
+    #status-bar .stat strong {
+      color: var(--gold);
+      font-family: 'Oswald', sans-serif;
+      font-size: 1rem;
+    }
+
+    #map {
+      flex: 1;
+      min-height: 55vh;
+      width: 100%;
+      z-index: 1;
+    }
+
+    #panel {
+      background: var(--dark);
+      border-top: 2px solid var(--border);
+      max-height: 38vh;
+      overflow-y: auto;
+    }
+
+    #panel h2 {
+      font-family: 'Oswald', sans-serif;
+      font-size: 1rem;
+      color: var(--gold);
+      padding: 12px 16px 8px;
+      letter-spacing: 1px;
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      background: var(--dark);
+      z-index: 10;
+    }
+
+    #list { padding: 8px 0; }
+
+    .list-item {
+      display: flex;
+      align-items: center;
+      padding: 9px 16px;
+      gap: 12px;
+      border-bottom: 1px solid var(--border);
+      animation: fadeIn 0.3s ease;
+    }
+
+    .list-item:last-child { border-bottom: none; }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateX(-8px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+
+    .list-dot {
+      width: 12px; height: 12px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .list-dot.taken { background: var(--red); box-shadow: 0 0 6px rgba(192,57,43,0.6); }
+    .list-dot.free { background: var(--green-light); box-shadow: 0 0 6px rgba(61,139,61,0.4); }
+
+    .list-label {
+      font-family: 'Oswald', sans-serif;
+      font-size: 0.9rem;
+      color: var(--gold);
+      min-width: 80px;
+    }
+
+    .list-name {
+      font-size: 0.9rem;
+      color: var(--text);
+    }
+
+    .list-name.free { color: var(--text-dim); font-style: italic; }
+
+    /* Modal */
+    #modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.7);
+      z-index: 9999;
+      align-items: center;
+      justify-content: center;
+    }
+    #modal-overlay.active { display: flex; }
+
+    #modal {
+      background: var(--card);
+      border: 1px solid var(--gold);
+      border-radius: 8px;
+      padding: 28px 24px;
+      width: 90%;
+      max-width: 340px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+      animation: popIn 0.2s ease;
+    }
+
+    @keyframes popIn {
+      from { transform: scale(0.9); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+
+    #modal h3 {
+      font-family: 'Oswald', sans-serif;
+      font-size: 1.2rem;
+      color: var(--gold);
+      margin-bottom: 6px;
+    }
+
+    #modal p {
+      font-size: 0.85rem;
+      color: var(--text-dim);
+      margin-bottom: 18px;
+    }
+
+    #modal input {
+      width: 100%;
+      background: var(--dark);
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      padding: 10px 12px;
+      color: var(--text);
+      font-size: 1rem;
+      font-family: 'Source Sans 3', sans-serif;
+      margin-bottom: 14px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    #modal input:focus { border-color: var(--gold); }
+
+    .btn-row { display: flex; gap: 10px; }
+
+    .btn {
+      flex: 1;
+      padding: 10px;
+      border: none;
+      border-radius: 5px;
+      font-family: 'Oswald', sans-serif;
+      font-size: 1rem;
+      letter-spacing: 0.5px;
+      cursor: pointer;
+      transition: opacity 0.2s, transform 0.1s;
+    }
+    .btn:active { transform: scale(0.97); }
+
+    .btn-confirm { background: var(--green); color: #fff; }
+    .btn-confirm:hover { background: var(--green-light); }
+    .btn-cancel { background: var(--border); color: var(--text-dim); }
+    .btn-cancel:hover { opacity: 0.8; }
+
+    #toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(80px);
+      background: var(--green);
+      color: #fff;
+      padding: 10px 22px;
+      border-radius: 30px;
+      font-size: 0.9rem;
+      font-family: 'Oswald', sans-serif;
+      letter-spacing: 0.5px;
+      z-index: 99999;
+      transition: transform 0.3s ease;
+      white-space: nowrap;
+    }
+    #toast.show { transform: translateX(-50%) translateY(0); }
+
+    /* Map tile toggle */
+    #map-toggle {
+      margin-left: auto;
+      background: var(--border);
+      border: none;
+      color: var(--text-dim);
+      font-family: 'Oswald', sans-serif;
+      font-size: 0.8rem;
+      padding: 4px 10px;
+      border-radius: 4px;
+      cursor: pointer;
+      letter-spacing: 0.5px;
+    }
+    #map-toggle:hover { color: var(--gold); }
+
+    #panel::-webkit-scrollbar { width: 4px; }
+    #panel::-webkit-scrollbar-track { background: var(--dark); }
+    #panel::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="icon">🦌</div>
+  <div class="logo">
+    Lovačko Udruženje
+    <span>Bačka Palanka – Atar</span>
+  </div>
+</header>
+
+<div id="status-bar">
+  <div class="stat">Slobodne: <strong id="count-free">10</strong></div>
+  <div class="stat">Zauzete: <strong id="count-taken">0</strong></div>
+  <div class="stat" style="margin-left:auto; color: #4a6a4a;">⏱ Reset: ponoć</div>
+  <button id="map-toggle" onclick="toggleMapType()">🛰 Satelit</button>
+</div>
+
+<div id="map"></div>
+
+<div id="panel">
+  <h2>📋 EVIDENCIJA POZICIJA</h2>
+  <div id="list"></div>
+</div>
+
+<div id="modal-overlay">
+  <div id="modal">
+    <h3 id="modal-title">Pozicija 00</h3>
+    <p>Unesite vaše ime da zauzmete ovu poziciju.</p>
+    <input type="text" id="modal-input" placeholder="Vaše ime..." maxlength="30" />
+    <div class="btn-row">
+      <button class="btn btn-cancel" onclick="closeModal()">Odustani</button>
+      <button class="btn btn-confirm" onclick="confirmTake()">Zauzmi</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<!-- Leaflet JS -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<!-- Firebase -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getDatabase, ref, onValue, set, get } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyA978qjqd46P3YhWlhk7WDpRS-XCB6bOD4",
+    authDomain: "lovci-palanka.firebaseapp.com",
+    projectId: "lovci-palanka",
+    storageBucket: "lovci-palanka.firebasestorage.app",
+    messagingSenderId: "698708821410",
+    appId: "1:698708821410:web:d5f4e09717915255e41efb",
+    databaseURL: "https://lovci-palanka-default-rtdb.europe-west1.firebasedatabase.app"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+
+  const POSITIONS = [
+    { id: "01", lat: 45.2520, lng: 19.3850, label: "Pozicija 01" },
+    { id: "02", lat: 45.2480, lng: 19.4100, label: "Pozicija 02" },
+    { id: "03", lat: 45.2350, lng: 19.3720, label: "Pozicija 03" },
+    { id: "04", lat: 45.2600, lng: 19.4250, label: "Pozicija 04" },
+    { id: "05", lat: 45.2680, lng: 19.3950, label: "Pozicija 05" },
+    { id: "06", lat: 45.2420, lng: 19.4380, label: "Pozicija 06" },
+    { id: "07", lat: 45.2290, lng: 19.4050, label: "Pozicija 07" },
+    { id: "08", lat: 45.2750, lng: 19.4120, label: "Pozicija 08" },
+    { id: "09", lat: 45.2550, lng: 19.3650, label: "Pozicija 09" },
+    { id: "10", lat: 45.2380, lng: 19.3580, label: "Pozicija 10" },
+  ];
+
+  let markers = {};
+  let currentData = {};
+  let selectedId = null;
+  let isSatellite = false;
+
+  // Leaflet mapa
+  const map = L.map('map').setView([45.252, 19.400], 12);
+
+  const streetLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap contributors',
+    maxZoom: 19
+  });
+
+  const satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+    attribution: '© Esri',
+    maxZoom: 19
+  });
+
+  streetLayer.addTo(map);
+
+  window.toggleMapType = function() {
+    isSatellite = !isSatellite;
+    if (isSatellite) {
+      map.removeLayer(streetLayer);
+      satelliteLayer.addTo(map);
+      document.getElementById('map-toggle').textContent = '🗺 Mapa';
+    } else {
+      map.removeLayer(satelliteLayer);
+      streetLayer.addTo(map);
+      document.getElementById('map-toggle').textContent = '🛰 Satelit';
+    }
+  };
+
+  function makeIcon(taken) {
+    return L.divIcon({
+      className: '',
+      html: `<div style="
+        width:32px; height:32px;
+        background:${taken ? '#c0392b' : '#2d6a2d'};
+        border:3px solid #fff;
+        border-radius:50%;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+        display:flex; align-items:center; justify-content:center;
+        font-size:11px; font-weight:bold; color:#fff;
+        font-family:'Oswald',sans-serif;
+        cursor:pointer;
+      "></div>`,
+      iconSize: [32, 32],
+      iconAnchor: [16, 16],
+    });
+  }
+
+  // Kreiranje markera
+  POSITIONS.forEach(pos => {
+    const marker = L.marker([pos.lat, pos.lng], { icon: makeIcon(false) }).addTo(map);
+
+    marker.on('click', () => {
+      const d = currentData[pos.id];
+      if (d && d.taken) {
+        showToast(`Pozicija ${pos.id} već zauzeta – ${d.name}`);
+        return;
+      }
+      openModal(pos.id, pos.label);
+    });
+
+    markers[pos.id] = marker;
+  });
+
+  function updateMarkers(data) {
+    POSITIONS.forEach(pos => {
+      const d = data[pos.id];
+      const taken = d && d.taken;
+      if (markers[pos.id]) {
+        markers[pos.id].setIcon(makeIcon(taken));
+      }
+    });
+  }
+
+  function updateList(data) {
+    const list = document.getElementById("list");
+    list.innerHTML = "";
+    POSITIONS.forEach(pos => {
+      const d = data[pos.id];
+      const taken = d && d.taken;
+      const item = document.createElement("div");
+      item.className = "list-item";
+      item.innerHTML = `
+        <div class="list-dot ${taken ? 'taken' : 'free'}"></div>
+        <div class="list-label">${pos.label}</div>
+        <div class="list-name ${taken ? '' : 'free'}">${taken ? d.name : 'slobodna'}</div>
+      `;
+      list.appendChild(item);
+    });
+  }
+
+  function updateCounts(data) {
+    let taken = 0;
+    POSITIONS.forEach(pos => { if (data[pos.id] && data[pos.id].taken) taken++; });
+    document.getElementById("count-taken").textContent = taken;
+    document.getElementById("count-free").textContent = POSITIONS.length - taken;
+  }
+
+  // Reset u ponoc
+  function getTodayMidnight() {
+    const now = new Date();
+    return new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0).getTime();
+  }
+
+  async function checkAndReset() {
+    const resetRef = ref(db, "lastReset");
+    const snap = await get(resetRef);
+    const todayMidnight = getTodayMidnight();
+    if (!snap.exists() || snap.val() < todayMidnight) {
+      const updates = {};
+      POSITIONS.forEach(p => { updates[`positions/${p.id}`] = { taken: false, name: "" }; });
+      updates["lastReset"] = todayMidnight;
+      await set(ref(db, "/"), updates);
+    }
+  }
+
+  // Provera svakih 5 minuta
+  setInterval(checkAndReset, 5 * 60 * 1000);
+
+  // Slušanje Firebase promena
+  const posRef = ref(db, "positions");
+  onValue(posRef, (snap) => {
+    const data = snap.val() || {};
+    currentData = data;
+    updateMarkers(data);
+    updateList(data);
+    updateCounts(data);
+  });
+
+  window.openModal = function(id, label) {
+    selectedId = id;
+    document.getElementById("modal-title").textContent = label;
+    document.getElementById("modal-input").value = "";
+    document.getElementById("modal-overlay").classList.add("active");
+    setTimeout(() => document.getElementById("modal-input").focus(), 100);
+  };
+
+  window.closeModal = function() {
+    document.getElementById("modal-overlay").classList.remove("active");
+    selectedId = null;
+  };
+
+  window.confirmTake = async function() {
+    const name = document.getElementById("modal-input").value.trim();
+    if (!name) {
+      document.getElementById("modal-input").style.borderColor = "#c0392b";
+      setTimeout(() => document.getElementById("modal-input").style.borderColor = "", 1000);
+      return;
+    }
+    const posRef = ref(db, `positions/${selectedId}`);
+    const snap = await get(posRef);
+    if (snap.exists() && snap.val().taken) {
+      showToast("Pozicija je upravo zauzeta!");
+      closeModal();
+      return;
+    }
+    await set(posRef, { taken: true, name });
+    closeModal();
+    showToast(`✓ Pozicija ${selectedId} zauzeta – ${name}`);
+  };
+
+  window.showToast = function(msg) {
+    const t = document.getElementById("toast");
+    t.textContent = msg;
+    t.classList.add("show");
+    setTimeout(() => t.classList.remove("show"), 3000);
+  };
+
+  document.getElementById("modal-input").addEventListener("keydown", e => {
+    if (e.key === "Enter") window.confirmTake();
+  });
+
+  // Init
+  checkAndReset();
+</script>
+
+</body>
+</html>
