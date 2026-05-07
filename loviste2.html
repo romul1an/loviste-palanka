@@ -371,7 +371,7 @@
     }
   };
 
-  function makeIcon(taken) {
+  function makeIcon(taken, label) {
     return L.divIcon({
       className: '',
       html: `<div style="
@@ -384,7 +384,7 @@
         font-size:11px; font-weight:bold; color:#fff;
         font-family:'Oswald',sans-serif;
         cursor:pointer;
-      "></div>`,
+      ">${label}</div>`,
       iconSize: [32, 32],
       iconAnchor: [16, 16],
     });
@@ -392,7 +392,7 @@
 
   // Kreiranje markera
   POSITIONS.forEach(pos => {
-    const marker = L.marker([pos.lat, pos.lng], { icon: makeIcon(false) }).addTo(map);
+    const marker = L.marker([pos.lat, pos.lng], { icon: makeIcon(false, pos.id) }).addTo(map);
 
     marker.on('click', () => {
       const d = currentData[pos.id];
@@ -411,7 +411,7 @@
       const d = data[pos.id];
       const taken = d && d.taken;
       if (markers[pos.id]) {
-        markers[pos.id].setIcon(makeIcon(taken));
+        markers[pos.id].setIcon(makeIcon(taken, pos.id));
       }
     });
   }
