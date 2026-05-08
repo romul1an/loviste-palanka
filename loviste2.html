@@ -451,10 +451,12 @@
     const snap = await get(resetRef);
     const todayMidnight = getTodayMidnight();
     if (!snap.exists() || snap.val() < todayMidnight) {
-      const updates = {};
-      POSITIONS.forEach(p => { updates[`positions/${p.id}`] = { taken: false, name: "" }; });
-      updates["lastReset"] = todayMidnight;
-      await set(ref(db, "/"), updates);
+      // Resetuj svaku poziciju posebno
+      for (const p of POSITIONS) {
+        await set(ref(db, `positions/${p.id}`), { taken: false, name: "" });
+      }
+      // Upisi lastReset
+      await set(ref(db, "lastReset"), todayMidnight);
     }
   }
 
