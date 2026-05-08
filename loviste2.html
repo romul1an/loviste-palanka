@@ -293,11 +293,12 @@
 <div id="modal-overlay">
   <div id="modal">
     <h3 id="modal-title">Pozicija 00</h3>
-    <p>Unesite vaše ime da zauzmete ovu poziciju.</p>
-    <input type="text" id="modal-input" placeholder="Vaše ime..." maxlength="30" />
+    <p id="modal-desc">Unesite vaš PIN kod da zauzmete ili oslobodite ovu poziciju.</p>
+    <input type="number" id="modal-input" placeholder="PIN kod..." maxlength="2" />
+    <div id="modal-error" style="color:#c0392b; font-size:0.82rem; margin-bottom:10px; display:none;">Pogrešan PIN!</div>
     <div class="btn-row">
       <button class="btn btn-cancel" onclick="closeModal()">Odustani</button>
-      <button class="btn btn-confirm" onclick="confirmTake()">Zauzmi</button>
+      <button class="btn btn-confirm" onclick="confirmTake()">Potvrdi</button>
     </div>
   </div>
 </div>
@@ -325,7 +326,11 @@
   const app = initializeApp(firebaseConfig);
   const db = getDatabase(app);
 
-  const POSITIONS = [
+  const HUNTERS = {
+    "11": "Laza",
+    "12": "Dario",
+    "13": "Jug",
+  };
     { id: "01", lat: 45.2520, lng: 19.3850, label: "Pozicija 01" },
     { id: "02", lat: 45.2480, lng: 19.4100, label: "Pozicija 02" },
     { id: "03", lat: 45.2350, lng: 19.3720, label: "Pozicija 03" },
@@ -395,11 +400,6 @@
     const marker = L.marker([pos.lat, pos.lng], { icon: makeIcon(false, pos.id) }).addTo(map);
 
     marker.on('click', () => {
-      const d = currentData[pos.id];
-      if (d && d.taken) {
-        showToast(`Pozicija ${pos.id} već zauzeta – ${d.name}`);
-        return;
-      }
       openModal(pos.id, pos.label);
     });
 
@@ -475,8 +475,14 @@
 
   window.openModal = function(id, label) {
     selectedId = id;
+    const d = currentData[id];
+    const taken = d && d.taken;
     document.getElementById("modal-title").textContent = label;
+    document.getElementById("modal-desc").textContent = taken
+      ? `Pozicija zauzeta (${d.name}). Unesite vaš PIN da je oslobodite.`
+      : "Unesite vaš PIN da zauzmete ovu poziciju.";
     document.getElementById("modal-input").value = "";
+    document.getElementById("modal-error").style.display = "none";
     document.getElementById("modal-overlay").classList.add("active");
     setTimeout(() => document.getElementById("modal-input").focus(), 100);
   };
@@ -487,22 +493,37 @@
   };
 
   window.confirmTake = async function() {
-    const name = document.getElementById("modal-input").value.trim();
+    const pin = document.getElementById("modal-input").value.trim();
+    const errorEl = document.getElementById("modal-error");
+    const name = HUNTERS[pin];
+
     if (!name) {
-      document.getElementById("modal-input").style.borderColor = "#c0392b";
-      setTimeout(() => document.getElementById("modal-input").style.borderColor = "", 1000);
+      errorEl.textContent = "Pogrešan PIN!";
+      errorEl.style.display = "block";
       return;
     }
+
     const posRef = ref(db, `positions/${selectedId}`);
     const snap = await get(posRef);
-    if (snap.exists() && snap.val().taken) {
-      showToast("Pozicija je upravo zauzeta!");
+    const d = snap.val();
+
+    if (d && d.taken) {
+      // Pozicija je zauzeta — proveri da li je ovaj lovac zauzeo
+      if (d.name !== name) {
+        errorEl.textContent = `Ovu poziciju je zauzeo ${d.name}. Ne možete je osloboditi.`;
+        errorEl.style.display = "block";
+        return;
+      }
+      // Oslobodi poziciju
+      await set(posRef, { taken: false, name: "" });
       closeModal();
-      return;
+      showToast(`✓ Pozicija ${selectedId} oslobođena – ${name}`);
+    } else {
+      // Zauzmi poziciju
+      await set(posRef, { taken: true, name });
+      closeModal();
+      showToast(`✓ Pozicija ${selectedId} zauzeta – ${name}`);
     }
-    await set(posRef, { taken: true, name });
-    closeModal();
-    showToast(`✓ Pozicija ${selectedId} zauzeta – ${name}`);
   };
 
   window.showToast = function(msg) {
