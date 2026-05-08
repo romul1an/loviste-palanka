@@ -280,7 +280,7 @@
   <div class="stat">Slobodne: <strong id="count-free">10</strong></div>
   <div class="stat">Zauzete: <strong id="count-taken">0</strong></div>
   <div class="stat" style="margin-left:auto; color: #4a6a4a;">⏱ Reset: ponoć</div>
-  <button id="map-toggle" onclick="toggleMapType()">🛰 Satelit</button>
+  <button id="map-toggle" onclick="toggleMapType()">🗺 Mapa</button>
 </div>
 
 <div id="map"></div>
@@ -348,7 +348,7 @@
   let markers = {};
   let currentData = {};
   let selectedId = null;
-  let isSatellite = false;
+  let isSatellite = true;
 
   // Leaflet mapa
   const map = L.map('map').setView([45.252, 19.400], 12);
@@ -363,7 +363,7 @@
     maxZoom: 19
   });
 
-  streetLayer.addTo(map);
+  satelliteLayer.addTo(map);
 
   window.toggleMapType = function() {
     isSatellite = !isSatellite;
