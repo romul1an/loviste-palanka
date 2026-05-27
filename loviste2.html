@@ -277,10 +277,11 @@
 </header>
 
 <div id="status-bar">
-  <div class="stat">Slobodne: <strong id="count-free">10</strong></div>
+  <div class="stat">Slobodne: <strong id="count-free">51</strong></div>
   <div class="stat">Zauzete: <strong id="count-taken">0</strong></div>
-  <div class="stat" style="margin-left:auto; color: #4a6a4a;">⏱ Reset: ponoć</div>
+  <div class="stat" style="margin-left:auto; color: #4a6a4a;" id="reset-text">⏱ Sledeći reset: podne</div>
   <button id="map-toggle" onclick="toggleMapType()">🗺 Mapa</button>
+  <button onclick="openAdminLogin()" style="background:none;border:none;color:var(--text-dim);font-size:0.75rem;cursor:pointer;padding:0 4px;" title="Admin">⚙️</button>
 </div>
 
 <div id="map"></div>
@@ -288,6 +289,17 @@
 <div id="panel">
   <h2>📋 EVIDENCIJA POZICIJA</h2>
   <div id="list"></div>
+</div>
+
+<div id="swap-overlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:9999; align-items:center; justify-content:center;" class="">
+  <div style="background:var(--card); border:1px solid var(--gold); border-radius:8px; padding:28px 24px; width:90%; max-width:340px; box-shadow:0 20px 60px rgba(0,0,0,0.6); animation: popIn 0.2s ease;">
+    <h3 style="font-family:'Oswald',sans-serif; font-size:1.1rem; color:var(--gold); margin-bottom:12px;">⚠️ Već ste zauzeli drugu poziciju</h3>
+    <p id="swap-text" style="font-size:0.88rem; color:var(--text); margin-bottom:20px; line-height:1.5;"></p>
+    <div class="btn-row">
+      <button class="btn btn-cancel" onclick="closeSwap()">Odustani</button>
+      <button class="btn btn-confirm" onclick="confirmSwap()">Premesti me</button>
+    </div>
+  </div>
 </div>
 
 <div id="modal-overlay">
@@ -300,6 +312,45 @@
       <button class="btn btn-cancel" onclick="closeModal()">Odustani</button>
       <button class="btn btn-confirm" onclick="confirmTake()">Potvrdi</button>
     </div>
+  </div>
+</div>
+
+<!-- Admin login modal -->
+<div id="admin-login-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;align-items:center;justify-content:center;">
+  <div style="background:var(--card);border:1px solid var(--gold);border-radius:8px;padding:28px 24px;width:90%;max-width:320px;">
+    <h3 style="font-family:'Oswald',sans-serif;color:var(--gold);margin-bottom:16px;">🔐 Admin pristup</h3>
+    <input type="password" id="admin-pass-input" placeholder="Lozinka..." style="width:100%;background:var(--dark);border:1px solid var(--border);border-radius:5px;padding:10px 12px;color:var(--text);font-size:1rem;margin-bottom:10px;outline:none;"/>
+    <div id="admin-login-error" style="color:#c0392b;font-size:0.82rem;margin-bottom:10px;display:none;">Pogrešna lozinka!</div>
+    <div class="btn-row">
+      <button class="btn btn-cancel" onclick="closeAdminLogin()">Odustani</button>
+      <button class="btn btn-confirm" onclick="confirmAdminLogin()">Prijavi se</button>
+    </div>
+  </div>
+</div>
+
+<!-- Admin panel -->
+<div id="admin-panel-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:9999;flex-direction:column;overflow-y:auto;">
+  <div style="background:var(--dark);border-bottom:2px solid var(--gold);padding:14px 16px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10;">
+    <span style="font-family:'Oswald',sans-serif;color:var(--gold);font-size:1.1rem;">⚙️ ADMIN PANEL</span>
+    <button onclick="closeAdminPanel()" style="background:none;border:none;color:var(--text-dim);font-size:1.4rem;cursor:pointer;">✕</button>
+  </div>
+
+  <!-- Akcije -->
+  <div style="padding:16px;border-bottom:1px solid var(--border);">
+    <div style="font-family:'Oswald',sans-serif;color:var(--gold);font-size:0.85rem;letter-spacing:1px;margin-bottom:10px;">AKCIJE</div>
+    <button onclick="adminResetAll()" style="background:var(--red);color:#fff;border:none;border-radius:5px;padding:9px 18px;font-family:'Oswald',sans-serif;font-size:0.95rem;cursor:pointer;margin-right:8px;">🔄 Resetuj sve pozicije</button>
+  </div>
+
+  <!-- Trenutne pozicije sa IP -->
+  <div style="padding:16px;border-bottom:1px solid var(--border);">
+    <div style="font-family:'Oswald',sans-serif;color:var(--gold);font-size:0.85rem;letter-spacing:1px;margin-bottom:10px;">TRENUTNO STANJE</div>
+    <div id="admin-positions-list"></div>
+  </div>
+
+  <!-- Istorija -->
+  <div style="padding:16px;">
+    <div style="font-family:'Oswald',sans-serif;color:var(--gold);font-size:0.85rem;letter-spacing:1px;margin-bottom:10px;">ISTORIJA (7 DANA)</div>
+    <div id="admin-history-list"></div>
   </div>
 </div>
 
@@ -330,20 +381,132 @@
     "11": "Laza",
     "12": "Dario",
     "13": "Jug",
+    "14": "Dukić Saša",
+    "15": "Ćirković Branislav",
+    "16": "Alimpić Sima",
+    "17": "Belajac Dimitrije",
+    "18": "Vaslić Stefan",
+    "19": "Knežević Dušan",
+    "20": "Lakić Dimitrije",
+    "21": "Martinović Boško",
+    "22": "Papić Aleksandar",
+    "23": "Papić Stevan",
+    "24": "Savić Tešo",
+    "25": "Sinadinović Slobodan",
+    "26": "Svilarov Milan",
+    "27": "Tir Aleksandar",
+    "28": "Buzarević Stevan",
+    "29": "Vučković Damir",
+    "30": "Vučković Miroslav",
+    "31": "Dangubić Marko",
+    "32": "Kolarić Zoran",
+    "33": "Peškan Miroslav",
+    "34": "Radivojević Goran",
+    "35": "Zolnjan Igor",
+    "36": "Šarac Lazar",
+    "37": "Zmijanac Srđan",
+    "38": "Rokvić Dalibor",
+    "39": "Antić Srđan",
+    "40": "Ivančeić Dušan",
+    "41": "Blagojević Momir",
+    "42": "Antolović Momir",
+    "43": "Antolović Boris",
+    "44": "Bolić Goran",
+    "45": "Vukasović Jovan",
+    "46": "Vukasović Ognjen",
+    "47": "Vukasović Velibor",
+    "48": "Rundić Slavko",
+    "49": "Jurišić Pavle",
+    "50": "Petrović Predrag",
+    "51": "Ćopić Drago",
+    "52": "Pandurov Dejan",
+    "53": "Vidović Dragan",
+    "54": "Vučković Ilija",
+    "55": "Ivanković Goran",
+    "56": "Jovanović Milan",
+    "57": "Lazić Dragan",
+    "58": "Lazić Živko",
+    "59": "Mišković Marko",
+    "60": "Nikolić Duško",
+    "61": "Nikolić Saša",
+    "62": "Nikolić Tode",
+    "63": "Rakić Miloš",
+    "64": "Told Jakob",
+    "65": "Šujdović Milivoje",
+    "66": "Buha Nebojša",
+    "67": "Dobi Robert",
+    "68": "Jovetić Jovo",
+    "69": "Kolar Patrik",
+    "70": "Kopanja Lazar",
+    "71": "Kosmel Miloš",
+    "72": "Marčeta Dragan",
+    "73": "Sovilj Borislav",
+    "74": "Hajduk Mladen",
+    "75": "Ćopić Zdravko",
+    "76": "Drobac Miroslav",
+    "77": "Draganov Bojan",
   };
 
   const POSITIONS = [
-    { id: "01", lat: 45.2520, lng: 19.3850, label: "Pozicija 01" },
-    { id: "02", lat: 45.2480, lng: 19.4100, label: "Pozicija 02" },
-    { id: "03", lat: 45.2350, lng: 19.3720, label: "Pozicija 03" },
-    { id: "04", lat: 45.2600, lng: 19.4250, label: "Pozicija 04" },
-    { id: "05", lat: 45.2680, lng: 19.3950, label: "Pozicija 05" },
-    { id: "06", lat: 45.2420, lng: 19.4380, label: "Pozicija 06" },
-    { id: "07", lat: 45.2290, lng: 19.4050, label: "Pozicija 07" },
-    { id: "08", lat: 45.2750, lng: 19.4120, label: "Pozicija 08" },
-    { id: "09", lat: 45.2550, lng: 19.3650, label: "Pozicija 09" },
-    { id: "10", lat: 45.2380, lng: 19.3580, label: "Pozicija 10" },
+    { id: "01", lat: 45.24060592151311, lng: 19.306161135209052, label: "Pozicija 01" },
+    { id: "02", lat: 45.24294844940807, lng: 19.3062184952229, label: "Pozicija 02" },
+    { id: "03", lat: 45.244599826332795, lng: 19.30747528052689, label: "Pozicija 03" },
+    { id: "04", lat: 45.24604175223352, lng: 19.308512016301638, label: "Pozicija 04" },
+    { id: "05", lat: 45.24836549899845, lng: 19.310232546400037, label: "Pozicija 05" },
+    { id: "06", lat: 45.25029244778543, lng: 19.31178698575257, label: "Pozicija 06" },
+    { id: "07", lat: 45.251862394844075, lng: 19.312841010907658, label: "Pozicija 07" },
+    { id: "08", lat: 45.25448434268938, lng: 19.314705539731822, label: "Pozicija 08" },
+    { id: "09", lat: 45.25726746048612, lng: 19.316521952260604, label: "Pozicija 09" },
+    { id: "10", lat: 45.259519532317526, lng: 19.31930627015841, label: "Pozicija 10" },
+    { id: "11", lat: 45.25810396180769, lng: 19.325632879617185, label: "Pozicija 11" },
+    { id: "12", lat: 45.25582798590086, lng: 19.323518329129925, label: "Pozicija 12" },
+    { id: "13", lat: 45.252655154577575, lng: 19.319337744819457, label: "Pozicija 13" },
+    { id: "14", lat: 45.248421536587436, lng: 19.315107943448005, label: "Pozicija 14" },
+    { id: "15", lat: 45.24595623135581, lng: 19.314752115208616, label: "Pozicija 15" },
+    { id: "16", lat: 45.247160303158616, lng: 19.317953674958332, label: "Pozicija 16" },
+    { id: "17", lat: 45.24590412078003, lng: 19.325295631769443, label: "Pozicija 17" },
+    { id: "18", lat: 45.238727316194705, lng: 19.323727476734735, label: "Pozicija 18" },
+    { id: "19", lat: 45.26212500410599, lng: 19.349625247411304, label: "Pozicija 19" },
+    { id: "20", lat: 45.285730015868566, lng: 19.37664356242483, label: "Pozicija 20" },
+    { id: "21", lat: 45.2840114274617, lng: 19.391110607406976, label: "Pozicija 21" },
+    { id: "22", lat: 45.280253849492375, lng: 19.395096094745128, label: "Pozicija 22" },
+    { id: "23", lat: 45.27959383679727, lng: 19.40063332857595, label: "Pozicija 23" },
+    { id: "24", lat: 45.2805979157406, lng: 19.404529324954144, label: "Pozicija 24" },
+    { id: "25", lat: 45.279518437425416, lng: 19.404420038742753, label: "Pozicija 25" },
+    { id: "26", lat: 45.28018279089015, lng: 19.390883502972656, label: "Pozicija 26" },
+    { id: "27", lat: 45.30199339041772, lng: 19.375254228822083, label: "Pozicija 27" },
+    { id: "28", lat: 45.305240628631914, lng: 19.373088314190767, label: "Pozicija 28" },
+    { id: "29", lat: 45.29986855418989, lng: 19.39056762851135, label: "Pozicija 29" },
+    { id: "30", lat: 45.24357062300171, lng: 19.44932916193012, label: "Pozicija 30" },
+    { id: "31", lat: 45.24318784425539, lng: 19.452308114637685, label: "Pozicija 31" },
+    { id: "32", lat: 45.244734566987745, lng: 19.457339604734194, label: "Pozicija 32" },
+    { id: "33", lat: 45.24490642233348, lng: 19.461355921002117, label: "Pozicija 33" },
+    { id: "34", lat: 45.24544542019141, lng: 19.464567864956017, label: "Pozicija 34" },
+    { id: "35", lat: 45.24256688146038, lng: 19.46988179438763, label: "Pozicija 35" },
+    { id: "36", lat: 45.24878229595334, lng: 19.470518054440873, label: "Pozicija 36" },
+    { id: "37", lat: 45.24396349338867, lng: 19.479790370485098, label: "Pozicija 37" },
+    { id: "38", lat: 45.244731047551014, lng: 19.48448264756275, label: "Pozicija 38" },
+    { id: "39", lat: 45.24528684274658, lng: 19.49142310583229, label: "Pozicija 39" },
+    { id: "40", lat: 45.253296011083556, lng: 19.492556683496627, label: "Pozicija 40" },
+    { id: "41", lat: 45.24675500568396, lng: 19.50046120489278, label: "Pozicija 41" },
+    { id: "42", lat: 45.246275389803834, lng: 19.497437805837897, label: "Pozicija 42" },
+    { id: "43", lat: 45.26489711838089, lng: 19.496729562041292, label: "Pozicija 43" },
+    { id: "44", lat: 45.26373107110153, lng: 19.493472640322526, label: "Pozicija 44" },
+    { id: "45", lat: 45.25966738550589, lng: 19.49329692989588, label: "Pozicija 45" },
+    { id: "46", lat: 45.29887628265876, lng: 19.49404073849068, label: "Pozicija 46" },
+    { id: "47", lat: 45.31642552414362, lng: 19.51530071987755, label: "Pozicija 47" },
+    { id: "48", lat: 45.27195207592431, lng: 19.340301057493704, label: "Pozicija 48" },
+    { id: "49", lat: 45.27451806232354, lng: 19.339927079781045, label: "Pozicija 49" },
+    { id: "50", lat: 45.275110196555005, lng: 19.3284584299262, label: "Pozicija 50" },
+    { id: "51", lat: 45.280263861294294, lng: 19.325344376820905, label: "Pozicija 51" },
   ];
+
+  window.showToast = function(msg) {
+    const t = document.getElementById("toast");
+    t.textContent = msg;
+    t.classList.add("show");
+    setTimeout(() => t.classList.remove("show"), 3000);
+  };
 
   let markers = {};
   let currentData = {};
@@ -364,6 +527,7 @@
   });
 
   satelliteLayer.addTo(map);
+  setTimeout(() => map.invalidateSize(), 300);
 
   window.toggleMapType = function() {
     isSatellite = !isSatellite;
@@ -442,23 +606,26 @@
     document.getElementById("count-free").textContent = POSITIONS.length - taken;
   }
 
-  // Reset u ponoc
-  function getTodayMidnight() {
+  // Vraca timestamp poslednjeg ponoci ili podne (koji god je bio skoriji)
+  function getLastResetTime() {
     const now = new Date();
-    return new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0).getTime();
+    const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0).getTime();
+    const noon = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 12, 0, 0, 0).getTime();
+    const nowTime = now.getTime();
+    // Ako je pre podne, poslednji reset je bio ponoc
+    // Ako je posle podne, poslednji reset je bio podne
+    return nowTime >= noon ? noon : midnight;
   }
 
   async function checkAndReset() {
     const resetRef = ref(db, "lastReset");
     const snap = await get(resetRef);
-    const todayMidnight = getTodayMidnight();
-    if (!snap.exists() || snap.val() < todayMidnight) {
-      // Resetuj svaku poziciju posebno
+    const lastResetTime = getLastResetTime();
+    if (!snap.exists() || snap.val() < lastResetTime) {
       for (const p of POSITIONS) {
         await set(ref(db, `positions/${p.id}`), { taken: false, name: "" });
       }
-      // Upisi lastReset
-      await set(ref(db, "lastReset"), todayMidnight);
+      await set(ref(db, "lastReset"), lastResetTime);
     }
   }
 
@@ -517,23 +684,227 @@
         return;
       }
       // Oslobodi poziciju
+      const releasedPosId = selectedId;
       await set(posRef, { taken: false, name: "" });
+      await saveHistory(name, releasedPosId, "nepoznata", "oslobođeno");
       closeModal();
-      showToast(`✓ Pozicija ${selectedId} oslobođena – ${name}`);
+      showToast(`✓ Pozicija ${releasedPosId} oslobođena – ${name}`);
     } else {
+      // Proveri da li lovac već ima zauzetu poziciju
+      const allSnap = await get(ref(db, "positions"));
+      const allData = allSnap.val() || {};
+      const alreadyTaken = Object.entries(allData).find(
+        ([id, val]) => val && val.taken && val.name === name
+      );
+
+      if (alreadyTaken) {
+        const [takenId] = alreadyTaken;
+        const pendingNewId = selectedId;
+        closeModal();
+        showSwapModal(name, takenId, pendingNewId);
+        return;
+      }
+
       // Zauzmi poziciju
-      await set(posRef, { taken: true, name });
+      const takenPosId = selectedId;
+      // Dohvati IP adresu
+      let ipAddress = "nepoznata";
+      try {
+        const ipResp = await fetch("https://api.ipify.org?format=json");
+        const ipData = await ipResp.json();
+        ipAddress = ipData.ip;
+      } catch(e) {}
+      await set(posRef, { taken: true, name, ip: ipAddress });
+      await saveHistory(name, takenPosId, ipAddress, "zauzeto");
       closeModal();
-      showToast(`✓ Pozicija ${selectedId} zauzeta – ${name}`);
+      showToast(`✓ Pozicija ${takenPosId} zauzeta – ${name}`);
     }
   };
 
-  window.showToast = function(msg) {
-    const t = document.getElementById("toast");
-    t.textContent = msg;
-    t.classList.add("show");
-    setTimeout(() => t.classList.remove("show"), 3000);
+  // Modal za zamenu pozicije
+  let swapData = null;
+
+  window.showSwapModal = function(name, oldId, newId) {
+    swapData = { name, oldId, newId };
+    document.getElementById("swap-text").textContent =
+      `${name}, već ste zauzeli Poziciju ${oldId}. Želite li da je oslobodite i zauzmete Poziciju ${newId}?`;
+    const el = document.getElementById("swap-overlay");
+    el.style.display = "flex";
   };
+
+  window.closeSwap = function() {
+    document.getElementById("swap-overlay").style.display = "none";
+    swapData = null;
+  };
+
+  window.confirmSwap = async function() {
+    if (!swapData) return;
+    const { name, oldId, newId } = swapData;
+    await set(ref(db, `positions/${oldId}`), { taken: false, name: "" });
+    await set(ref(db, `positions/${newId}`), { taken: true, name });
+    await saveHistory(name, oldId, "nepoznata", "oslobođeno");
+    await saveHistory(name, newId, "nepoznata", "zauzeto");
+    closeSwap();
+    showToast(`✓ Premešteno na Poziciju ${newId} – ${name}`);
+  };
+
+  // Dinamicki reset tekst
+  function updateResetText() {
+    const now = new Date();
+    const noon = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 12, 0, 0, 0);
+    const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 0, 0);
+    const next = now < noon ? noon : midnight;
+    const label = now < noon ? "podne" : "ponoć";
+    const diff = next - now;
+    const h = Math.floor(diff / 3600000);
+    const m = Math.floor((diff % 3600000) / 60000);
+    document.getElementById("reset-text").textContent = `⏱ Sve pozicije oslobađaju se u ${label} (za ${h}h ${m}m)`;
+  }
+  updateResetText();
+  setInterval(updateResetText, 60000);
+
+  // Čuvanje istorije u Firebase
+  async function saveHistory(name, posId, ip, action) {
+    const now = new Date();
+    const dateKey = now.toISOString().slice(0, 10); // "2025-05-01"
+    const timestamp = now.getTime();
+    const histRef = ref(db, `history/${dateKey}/${timestamp}`);
+    await set(histRef, { name, posId, ip, action, time: now.toLocaleTimeString("sr-RS", {hour:"2-digit", minute:"2-digit"}) });
+
+    // Brisanje istorije starije od 7 dana
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - 7);
+    const cutoffKey = cutoff.toISOString().slice(0, 10);
+    const histAllSnap = await get(ref(db, "history"));
+    if (histAllSnap.exists()) {
+      const allDays = Object.keys(histAllSnap.val());
+      for (const day of allDays) {
+        if (day < cutoffKey) {
+          await set(ref(db, `history/${day}`), null);
+        }
+      }
+    }
+  }
+
+  // Admin funkcije
+  const ADMIN_PASS = "jug2020jug";
+
+  window.openAdminLogin = function() {
+    document.getElementById("admin-pass-input").value = "";
+    document.getElementById("admin-login-error").style.display = "none";
+    document.getElementById("admin-login-overlay").style.display = "flex";
+    setTimeout(() => document.getElementById("admin-pass-input").focus(), 100);
+  };
+
+  window.closeAdminLogin = function() {
+    document.getElementById("admin-login-overlay").style.display = "none";
+  };
+
+  window.confirmAdminLogin = function() {
+    const pass = document.getElementById("admin-pass-input").value;
+    if (pass !== ADMIN_PASS) {
+      document.getElementById("admin-login-error").style.display = "block";
+      return;
+    }
+    closeAdminLogin();
+    openAdminPanel();
+  };
+
+  window.openAdminPanel = async function() {
+    document.getElementById("admin-panel-overlay").style.display = "flex";
+    await loadAdminPositions();
+    await loadAdminHistory();
+  };
+
+  window.closeAdminPanel = function() {
+    document.getElementById("admin-panel-overlay").style.display = "none";
+  };
+
+  window.adminResetAll = async function() {
+    if (!confirm("Resetovati sve pozicije?")) return;
+    for (const p of POSITIONS) {
+      await set(ref(db, `positions/${p.id}`), { taken: false, name: "" });
+    }
+    await set(ref(db, "lastReset"), Date.now());
+    showToast("✓ Sve pozicije resetovane");
+    await loadAdminPositions();
+  };
+
+  window.adminRelease = async function(posId) {
+    await set(ref(db, `positions/${posId}`), { taken: false, name: "" });
+    showToast(`✓ Pozicija ${posId} oslobođena`);
+    await loadAdminPositions();
+  };
+
+  async function loadAdminPositions() {
+    const snap = await get(ref(db, "positions"));
+    const data = snap.val() || {};
+    const container = document.getElementById("admin-positions-list");
+    let html = `<table style="width:100%;border-collapse:collapse;font-size:0.82rem;">
+      <tr style="color:var(--gold);font-family:'Oswald',sans-serif;border-bottom:1px solid var(--border);">
+        <td style="padding:6px 8px;">Pozicija</td>
+        <td style="padding:6px 8px;">Lovac</td>
+        <td style="padding:6px 8px;">IP adresa</td>
+        <td style="padding:6px 8px;"></td>
+      </tr>`;
+    POSITIONS.forEach(pos => {
+      const d = data[pos.id];
+      const taken = d && d.taken;
+      if (taken) {
+        html += `<tr style="border-bottom:1px solid var(--border);">
+          <td style="padding:6px 8px;color:var(--gold);">${pos.label}</td>
+          <td style="padding:6px 8px;color:var(--text);">${d.name}</td>
+          <td style="padding:6px 8px;color:var(--text-dim);">${d.ip || 'nepoznata'}</td>
+          <td style="padding:6px 8px;"><button onclick="adminRelease('${pos.id}')" style="background:var(--red);color:#fff;border:none;border-radius:4px;padding:3px 8px;font-size:0.75rem;cursor:pointer;">Oslobodi</button></td>
+        </tr>`;
+      }
+    });
+    html += `</table>`;
+    const takenCount = POSITIONS.filter(p => data[p.id] && data[p.id].taken).length;
+    if (takenCount === 0) container.innerHTML = `<div style="color:var(--text-dim);font-size:0.85rem;">Nema zauzetih pozicija.</div>`;
+    else container.innerHTML = html;
+  }
+
+  async function loadAdminHistory() {
+    const snap = await get(ref(db, "history"));
+    const container = document.getElementById("admin-history-list");
+    if (!snap.exists()) {
+      container.innerHTML = `<div style="color:var(--text-dim);font-size:0.85rem;">Nema istorije.</div>`;
+      return;
+    }
+    const history = snap.val();
+    const days = Object.keys(history).sort().reverse();
+    let html = "";
+    for (const day of days) {
+      html += `<div style="font-family:'Oswald',sans-serif;color:var(--gold);font-size:0.82rem;margin:12px 0 6px;">${day}</div>`;
+      html += `<table style="width:100%;border-collapse:collapse;font-size:0.8rem;">
+        <tr style="color:var(--text-dim);border-bottom:1px solid var(--border);">
+          <td style="padding:4px 8px;">Vreme</td>
+          <td style="padding:4px 8px;">Lovac</td>
+          <td style="padding:4px 8px;">Pozicija</td>
+          <td style="padding:4px 8px;">Akcija</td>
+          <td style="padding:4px 8px;">IP</td>
+        </tr>`;
+      const entries = history[day];
+      const sortedEntries = Object.values(entries).sort((a, b) => b.time > a.time ? 1 : -1);
+      for (const e of sortedEntries) {
+        const actionColor = e.action === 'zauzeto' ? '#c0392b' : '#2d6a2d';
+        html += `<tr style="border-bottom:1px solid var(--border);">
+          <td style="padding:4px 8px;color:var(--text-dim);">${e.time}</td>
+          <td style="padding:4px 8px;color:var(--text);">${e.name}</td>
+          <td style="padding:4px 8px;color:var(--gold);">Poz. ${e.posId}</td>
+          <td style="padding:4px 8px;color:${actionColor};">${e.action}</td>
+          <td style="padding:4px 8px;color:var(--text-dim);">${e.ip || '-'}</td>
+        </tr>`;
+      }
+      html += `</table>`;
+    }
+    container.innerHTML = html;
+  }
+
+  document.getElementById("admin-pass-input")?.addEventListener("keydown", e => {
+    if (e.key === "Enter") window.confirmAdminLogin();
+  });
 
   document.getElementById("modal-input").addEventListener("keydown", e => {
     if (e.key === "Enter") window.confirmTake();
